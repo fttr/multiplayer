@@ -6,25 +6,96 @@
     padding: 10px;
 }
 
-#log ul {
+ul {
     list-style: none;
     margin: 0;
     padding: 0;
 }
 
-#log ul li.you {
-    background-color: #F0A400;
+#player-list li.me {
+    font-weight: bold;
+    background-color: #c0392b;
 }
 
 #log ul b {
     color: blue;
 }
 
+#log ul li.big {
+    font-size: 16px;
+}
+
 #playfield {
-    opacity: 0.2;
+    opacity: 0.0;
+    border: 1px solid #888888;
+    border-radius: 18px;
+    box-shadow: 3px 3px 3px #CCCCCC;
+    padding: 20px;
 }
 
 
 .fade-in {
     opacity: 1;
+}
+
+.hidden {
+    display: none;
+}
+
+#player-header {
+    margin-top: 20px;
+}
+
+#player-instruction {
+    color: #f1c617;
+}
+
+.pulse {
+    -webkit-animation: pulse 1s infinite ease-in-out;
+    animation: pulse 1s infinite ease-in-out;
+    animation-direction:alternate;
+    -webkit-animation-direction:alternate;
+}
+
+#player-list li {
+    background-color: #2c3e50;
+    width: 100px;
+    height: 100px;
+    display: inline-block;
+    margin-right: 10px;
+    color: #fff;
+    text-align: center;
+}
+
+#player-list li .glyphicon {
+    font-size: 36px;
+    margin-top: 10px;
+}
+
+#player-list li .player-list-state {
+    font-weight: normal;
+    font-size: 12px;
+}
+
+#player-list .player-list-name {
+    margin-top: 4px;
+}
+
+
+@-webkit-keyframes pulse {
+0% { opacity: 0.2 }
+100% { opacity: 1 }
+}
+
+
+@keyframes pulse {
+0% { opacity: 0.2 }
+100% { opacity: 1 }
+}
+
+#playfield .table-hover > tbody > tr:hover > td, .table-hover > tbody > tr:hover > th {
+    background-color: #27ae60;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
 }

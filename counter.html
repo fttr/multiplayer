@@ -14,9 +14,19 @@
         <div class="container">
             
             <div class="row">
-                <div class="col-md-4" id="output">
-                    <h2>Sign up</h2>
+                <div class="col-md-6" id="output">
+                    
+                    <nav class="navbar navbar-inverse hidden" role="navigation" id="player-header">
+                        <span class="navbar-brand" id="player-header-name"></span>
+                        
+                        <ul class="nav navbar-nav">
+                            <li><a id="player-instruction" class="pulse">Waiting for enough players...</a></li>
+                        </ul>
+                    </nav>
+
+                    
                      <form role="form" id="player-signup">
+                        <h2>Sign up</h2>
                         <div class="form-group">
                             <label for="player-name" >Your name</label>
                             <input type="text" class="form-control" id="player-name" name="username" placeholder="Your name" required>
@@ -29,22 +39,29 @@
                         </div>
                     </form>
                     <div id="playfield">
-                        <button type="button" data-id="1" class="btn btn-success btn-lg action-button">1</button>
-                        <button type="button" data-id="2" class="btn btn-success btn-lg action-button">2</button>
+                        <p>Choose your most competitive spec!</p>
+                        <table class="table table-hover">
+                            <thead>
+                                <th id="dataset-title"></th><th></th>
+                            </thead>
+                            <tbody id="dataset-body">
+        
+                                
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-                <div class="col-md-4">
-                    <h2>Log</h2>
-                    <div id="log">
-                        <ul></ul>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <h2>Players</h2>
+                   <h2>Players</h2>
                     <ul id="player-list">
                         Loading...
                     </ul>
                 </div>
+                
+                <div class="col-md-6">
+                    <h2>Log</h2>
+                    <div id="log">
+                        <ul></ul>
+                    </div>
+                </div>                
             </div>
         </div>
     </body>
