@@ -1,0 +1,5 @@
+# this is my ignore file with a nice comment at the top
+
+
+./client.js   # a specific file
+./style.css   # a specific file

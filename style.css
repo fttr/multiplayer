@@ -1,0 +1,30 @@
+#log {
+    background-color: #EBFFCB;
+    border: 1px solid #F0A400;
+    font-family: monospace;
+    font-size: 13px;
+    padding: 10px;
+}
+
+#log ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+#log ul li.you {
+    background-color: #F0A400;
+}
+
+#log ul b {
+    color: blue;
+}
+
+#playfield {
+    opacity: 0.2;
+}
+
+
+.fade-in {
+    opacity: 1;
+}
