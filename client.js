@@ -1,4 +1,4 @@
-var socket = io.connect('http://localhost');
+var socket = io.connect('http://192.168.1.110');
 var sessionId = '';
 
 // ================= Generic events  ==================
@@ -87,9 +87,19 @@ socket.on('playerListUpdate', function(data) {
 // Game has been started
 socket.on('gameStarted', function(data) {
     log('GAME STARTED!');
-    $('#playfield').css('opacity', '1');
-    $('#playfield').fadeIn();
+    $('#playfield').slideDown();
 }); 
+
+
+// active/aiting state has changed
+socket.on('stateChanged', function(state) {
+   if (state == 'waiting') {
+       enableWaitingUI();
+   } else {
+       disableWaitingUI();
+   };
+}); 
+
 
 // Game has been started
 socket.on('instruction', function(data) {
@@ -99,40 +109,95 @@ socket.on('instruction', function(data) {
     $instruction.fadeIn();
 });
 
+socket.on('win', function(propId) {
+    $('.dataset tr[data-id="' + propId + '"]').addClass('highlight');
+    showPopup('win');    
+});
+
+socket.on('lose', function(propId) {
+    $('.dataset tr[data-id="' + propId + '"]').addClass('highlight');
+    showPopup('lose');
+});
+
+function showPopup(type) {
+    
+    var $popup = $('#popup');
+    
+    if (type === 'win') {
+        $popup.text('You win!');
+        $popup.removeClass('lose');
+        $popup.addClass('win');
+    } else if (type === 'lose') {
+        $popup.text('You lose!');
+        $popup.removeClass('win');
+        $popup.addClass('lose');
+    };
+    
+    $popup.fadeIn('fast');
+    
+    setTimeout(function() {
+        $popup.fadeOut('fast');
+    } , 1000);
+};
+   
+  
 function emitPlayerAction(data) {
     socket.emit('playerAction', data);
 };
 
 // Game has been started
-socket.on('newDataset', function(data) {
+socket.on('newDataset', function(dataset) {
+    renderDataset(dataset, 'mine');
     
-    console.log(data);
+    $('#dataset-opponent .dataset-secret').removeClass('hidden');
+    $('#dataset-opponent table').addClass('hidden');
     
-    $('#dataset-title').text(data.title);
-    $('#dataset-body').html('');
+    $('#playfield #dataset-mine tr').on('click', function() {
+        emitPlayerAction({
+            propId : $(this).data('id')
+        });
+    });
+}); 
+
+
+// reveal opponent's card
+socket.on('revealOpponent', function(dataset) {
+    renderDataset(dataset, 'opponent');
+    
+    $('#dataset-opponent .dataset-secret').addClass('hidden');
+    $('#dataset-opponent table').removeClass('hidden');
+}); 
+
+function renderDataset(data, origin) {
+   var $target = $('#dataset-' + origin);
+   
+    $title = $target.find('.dataset-title');
+    $body =  $target.find('.dataset-body');
+    
+    $title.text(data.title);
+    $body.html('');
     
      var row = '';
      var prop = {};
      
     for (var i in data.props) {
         prop = data.props[i];
+        
+        if (prop.value > 999) {
+            prop.value = addCommas(prop.value);
+        };
+        
         row = '<tr '
         + 'data-id="' + prop.id + '">'
         + '<td>' + prop.name + '</td>'
         + '<td>' + prop.value + ' ' + prop.unit + '</td>'
         row += '</tr>';
         
-        $('#dataset-body').append(row);
+        $body.append(row);
     };
 
-    $('#dataset-body').data('id', data.id);
-    
-        $('#playfield tr').on('click', function() {
-        emitPlayerAction({
-            propId : $(this).data('id')
-        });
-    });
-}); 
+    $body.data('id', data.id);
+}
 
 // Displays messages from the server in log (select box)
 function log(txt) {
@@ -147,6 +212,15 @@ function insertRandomName() {
   var name = names[Math.floor(Math.random()*names.length)];
 
   $('#player-name').val(name + (Math.floor(Math.random()*10)));
+}
+
+function enableWaitingUI() {
+    $('#playfield').addClass('waiting');
+}
+
+function disableWaitingUI() {
+    $('#playfield').removeClass('waiting');
+    
 }
 
 $(document).ready(function() {
@@ -188,6 +262,18 @@ $.fn.serializeObject = function()
    });
    return o;
 };
+
+function addCommas(str) {
+    var amount = new String(str);
+    amount = amount.split("").reverse();
+
+    var output = "";
+    for ( var i = 0; i <= amount.length-1; i++ ){
+        output = amount[i] + output;
+        if ((i+1) % 3 == 0 && (amount.length-1) !== i)output = ',' + output;
+    }
+    return output;
+}
 
 
 

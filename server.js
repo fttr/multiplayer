@@ -2,72 +2,63 @@ round = 42;
 
 // Users class
 
-var gameData = [{
-    id: 0,
-    title: 'Car AAAA',
-    props: [{
-       id: 0,
-       name: 'Max. speed',
-       value: 250,
-       unit: 'km/h',
-       comparison: 'high'
-    },{
-       id: 1,
-       name: 'Acceleration',
-       value: 4.5,
-       unit: 'seconds',
-       comparison: 'low'
-   }, {
-       id: 2,
-       name: 'Horsepower',
-       value: 340,
-       unit: 'PS',
-       comparison: 'high'
-   }, {
-       id: 3,
-       name: 'Price',
-       value: 120000,
-       unit: '€',
-       comparison: 'high'
-   }]
-}, {
-    id: 1,
-    title: 'Car BBBB',
-    props: [{
-       id: 0,
-       name: 'Max. speed',
-       value: 275,
-       unit: 'km/h',
-       comparison: 'high'
-    },{
-       id: 1,
-       name: 'Acceleration',
-       value: 5.2,
-       unit: 'seconds',
-       comparison: 'low'
-   }, {
-       id: 2,
-       name: 'Horsepower',
-       value: 180,
-       unit: 'PS',
-       comparison: 'high'
-   }, {
-       id: 3,
-       name: 'Price',
-       value: 200000,
-       unit: '€',
-       comparison: 'high'
-   }]
-}];
+var gameData = [];
 
 function getRandomDataset() {
-    var r = Math.floor(Math.random() * gameData.length);
-    return gameData[r];
+    var r = getRandomInt(0, gameData.length - 1);
+    return r;
 }
+
+function generateRandomDatasets(count) {
+
+    var tmp = {};
+    
+    for (var i = 0; i < count; i++) {
+        tmp = {
+            id: i,
+            title: 'Some Car',
+            props: [{
+               id: 0,
+               name: 'Max. speed',
+               value: getRandomInt(80, 400),
+               unit: 'km/h',
+               comparison: 'high'
+            },{
+               id: 1,
+               name: 'Acceleration',
+               value: getRandomFloat(3, 15),
+               unit: 'seconds',
+               comparison: 'low'
+           }, {
+               id: 2,
+               name: 'Horsepower',
+               value: getRandomInt(75, 500),
+               unit: 'PS',
+               comparison: 'high'
+           }, {
+               id: 3,
+               name: 'Price',
+               value: getRandomInt(15000, 200000),
+               unit: '€',
+               comparison: 'high'
+           }]
+       }
+       gameData.push(tmp);
+   };
+};
 
 function getDataset(id) {
     return gameData[id];
 }
+
+function getRandomInt (min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getRandomFloat (min, max) {
+    return (Math.random() * (max - min) + min).toFixed(1); ;
+}
+
 
 var User = function(options) {
     
@@ -204,38 +195,49 @@ var UserStorage = function () {
             var temp = waitingPlayer;
             waitingPlayer = activePlayer;
             activePlayer = temp;
+            
+            activePlayer.getSocket().emit('stateChanged', 'active');
+            waitingPlayer.getSocket().emit('stateChanged', 'waiting');
         };
          
         this.isActive = function() {
             return active;
-        };               
+        };
+        
+        this.setInactive = function() {
+            active = false;
+        };   
 
         // start new round
         this.start = function() {
-            
+ 
             activePlayerSocket = activePlayer.getSocket();
             waitingPlayerSocket = waitingPlayer.getSocket();
             
             activePlayer.setState('playing');
             activePlayerSocket.emit('news', "It's your turn, " + activePlayer.getUsername() + '!');
             activePlayerSocket.emit('instruction', "Choose your most competitive spec!");
+            activePlayerSocket.emit('stateChanged', 'active');
             
             waitingPlayer.setState('waiting');
             waitingPlayerSocket.emit('news', "Please wait, " + waitingPlayer.getUsername() + '!');
             waitingPlayerSocket.emit('instruction', "Please wait for " + activePlayer.getUsername() + '!');
+            waitingPlayerSocket.emit('stateChanged', 'waiting');
             
             io.sockets.emit('playerListUpdate', userStorage.getPlayerList());
 
-            //var dataset = getRandomDataset();
-            var dataset = gameData[0];
-            activePlayerSocket.emit('newDataset', dataset);
-            activePlayer.setDataset(dataset.id);
             
-            //dataset = getRandomDataset();
-            dataset = gameData[1];
-            waitingPlayerSocket.emit('newDataset', dataset);
-            waitingPlayer.setDataset(dataset.id);
+            var dataset = getRandomDataset();
+            activePlayer.setDataset(dataset);
+            activePlayerSocket.emit('newDataset', getDataset(dataset));
+
+            var dataset2 = getRandomDataset()
+            waitingPlayer.setDataset(dataset2);
+            waitingPlayerSocket.emit('newDataset', getDataset(dataset2));
             
+            console.log('initAp: ' + getDataset(dataset).props[0].value);
+            console.log('initWp: ' + getDataset(dataset2).props[0].value);
+
             active = true;
         };
     };
@@ -303,7 +305,7 @@ io.sockets.on('connection', function(client) {
             userStorage.addUser(user);
     
             io.sockets.emit('news', data.username + ' has joined. Waiting for ' + Number(MAX_PLAYERS - userStorage.count())  + ' player(s)');
-            client.emit('sessionId', user.sessionId);
+            client.emit('sessionId', user.getSessionId());
             io.sockets.emit('playerListUpdate', userStorage.getPlayerList());
             
             if (userStorage.count() === MAX_PLAYERS) {
@@ -317,14 +319,19 @@ io.sockets.on('connection', function(client) {
     
     client.on('playerAction', function(data) {
         
+        news(userStorage.getUserById(client.id).getUsername() + ' clicked.');
+            
+        
         if (true === round.isActive()) {
-
+            
             var username = userStorage.getUserById(client.id).getUsername();
             
             var activePlayer = round.getActivePlayer();
             var waitingPlayer = round.getWaitingPlayer();
             
             if (client.id === activePlayer.getId()) {
+                
+                round.setInactive();
                 
                 var apDataset = getDataset(activePlayer.getDataset());
                 var wpDataset = getDataset(waitingPlayer.getDataset());
@@ -337,32 +344,54 @@ io.sockets.on('connection', function(client) {
                 
                 var apIsWinner = false;
                 
+                console.log('++++++' + apProp.comparison);
+                
                 if(apProp.comparison === 'low') {
-                    apIsWinner = (apProp.value < wpProp.value);
-                } else if (apProp.comparison === 'high')
-                    apIsWinner = (apProp.value > wpProp.value);
+                    apIsWinner = (Number(apProp.value) < Number(wpProp.value));
+                } else if (apProp.comparison === 'high')  {
+                    apIsWinner = (Number(apProp.value) > Number(wpProp.value));
                 };
+                
+                //reveal opponents' cards
+                activePlayer.getSocket().emit('revealOpponent', wpDataset);
+                waitingPlayer.getSocket().emit('revealOpponent', apDataset);
+                
+                console.log('wpprop: ' + wpProp.value);
+                console.log('approp: ' + apProp.value);
                 
                 if (apIsWinner) {
-                    io.sockets.emit('news', activePlayer.getUsername() + ' wins!');
+                    io.sockets.emit('news', activePlayer.getUsername() + ' wins against ' + waitingPlayer.getUsername());
+                    activePlayer.getSocket().emit('win', data.propId);
+                    waitingPlayer.getSocket().emit('lose', data.propId);
                 } else {
-                    io.sockets.emit('news', waitingPlayer.getUsername() + ' loses!');
-                    round.swapPlayers();
+                    io.sockets.emit('news', activePlayer.getUsername() + ' loses against ' + waitingPlayer.getUsername());
+                    activePlayer.getSocket().emit('lose', data.propId);
+                    waitingPlayer.getSocket().emit('win', data.propId);
                 };
-
-                round.start();
                 
-            } else {
+                setTimeout(function() {
+                    round.swapPlayers();
+                    round.start();
+                }, 3000)
+
+             }  else {
                 client.emit('news', 'Sorry, ' + username + '! It is not your turn');
+            }
             }
     });
     
     function startGame(round) {
         
+        generateRandomDatasets(1000);
+        
         round.addPlayers(userStorage.getPlayers());
         round.start();
         
         io.sockets.emit('gameStarted');
+    }
+    
+    function news(msg) {
+        io.sockets.emit('news', msg);
     }
     
    
