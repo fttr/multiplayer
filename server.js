@@ -9,6 +9,10 @@ function getRandomDataset() {
     return r;
 }
 
+function sendPlayerList() {
+    io.sockets.emit('playerListUpdate', userStorage.getPlayerList());
+}
+
 function generateRandomDatasets(count) {
 
     var tmp = {};
@@ -68,6 +72,7 @@ var User = function(options) {
     var socket      = options.socket;
     var state       = options.state;
     var dataset     = -1;
+    var score       = 0;
     
     // get username of user
     this.getUsername = function() {
@@ -102,6 +107,14 @@ var User = function(options) {
     this.setDataset = function(datasetId) {
         dataset = datasetId;
     };
+    
+    this.getScore = function() {
+        return score;
+    };
+    
+    this.increaseScore = function() {
+        score++;
+    };    
 }
 
 var UserStorage = function () {
@@ -157,7 +170,8 @@ var UserStorage = function () {
             list.push({
                 name : users[i].getUsername(),
                 state: users[i].getState(),
-                sessionId: users[i].getSessionId()
+                sessionId: users[i].getSessionId(),
+                score: users[i].getScore()
             });
         }
         return list;
@@ -224,7 +238,7 @@ var UserStorage = function () {
             waitingPlayerSocket.emit('instruction', "Please wait for " + activePlayer.getUsername() + '!');
             waitingPlayerSocket.emit('stateChanged', 'waiting');
             
-            io.sockets.emit('playerListUpdate', userStorage.getPlayerList());
+            sendPlayerList();
 
             
             var dataset = getRandomDataset();
@@ -244,24 +258,14 @@ var UserStorage = function () {
 
 /************************************************************************************/
 
-var app = require('express')()
+var express = require('express')
+   , app = express()
   , server = require('http').createServer(app)
   , io = require('socket.io').listen(server);
 
 server.listen(80);
 
-app.get('/', function (req, res) {
-  res.sendfile(__dirname + '/counter.html');
-});
-
-app.get('/client.js', function (req, res) {
-  res.sendfile(__dirname + '/client.js');
-});
-
-app.get('/style.css', function (req, res) {
-  res.sendfile(__dirname + '/style.css');
-});
-
+app.use(express.static(__dirname));
 
 var userStorage = new UserStorage();
 var round = new Round();
@@ -275,7 +279,7 @@ io.sockets.on('connection', function(client) {
         userStorage.removeUser(client.id);
         
         io.sockets.emit('news', username + ' has left the game.');
-        io.sockets.emit('playerListUpdate', userStorage.getPlayerList());
+        sendPlayerList();
       };
   });
 
@@ -306,7 +310,7 @@ io.sockets.on('connection', function(client) {
     
             io.sockets.emit('news', data.username + ' has joined. Waiting for ' + Number(MAX_PLAYERS - userStorage.count())  + ' player(s)');
             client.emit('sessionId', user.getSessionId());
-            io.sockets.emit('playerListUpdate', userStorage.getPlayerList());
+            sendPlayerList();
             
             if (userStorage.count() === MAX_PLAYERS) {
                 startGame(round);
@@ -361,13 +365,21 @@ io.sockets.on('connection', function(client) {
                 
                 if (apIsWinner) {
                     io.sockets.emit('news', activePlayer.getUsername() + ' wins against ' + waitingPlayer.getUsername());
-                    activePlayer.getSocket().emit('win', data.propId);
+                    activePlayer.increaseScore();
+                    activePlayer.getSocket().emit('win', {
+                        propId: data.propId
+                    });
                     waitingPlayer.getSocket().emit('lose', data.propId);
                 } else {
                     io.sockets.emit('news', activePlayer.getUsername() + ' loses against ' + waitingPlayer.getUsername());
+                    waitingPlayer.increaseScore();
                     activePlayer.getSocket().emit('lose', data.propId);
-                    waitingPlayer.getSocket().emit('win', data.propId);
+                    waitingPlayer.getSocket().emit('win', {
+                        propId: data.propId
+                    });
                 };
+                
+                sendPlayerList();
                 
                 setTimeout(function() {
                     round.swapPlayers();
@@ -394,7 +406,6 @@ io.sockets.on('connection', function(client) {
         io.sockets.emit('news', msg);
     }
     
-   
+
+
 });
-
-

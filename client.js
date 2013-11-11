@@ -1,4 +1,4 @@
-var socket = io.connect('http://192.168.1.110');
+var socket = io.connect('http://10.189.171.108');
 var sessionId = '';
 
 // ================= Generic events  ==================
@@ -69,9 +69,13 @@ socket.on('playerListUpdate', function(data) {
         };
         entry += '>'
         
-        + '<span class="glyphicon glyphicon-user"></span>' 
-        + '<div class="player-list-name">' + data[key].name + '</div>' 
-        + '<div class="player-list-state">' + data[key].state + '</div>' 
+        
+        + '<div class="player-list-column">'
+            + '<span class="glyphicon glyphicon-user"></span>' 
+            + '<div class="player-list-name">' + data[key].name + '</div>' 
+            + '<div class="player-list-state">' + data[key].state + '</div>'
+        + '</div>'
+        + '<div class="player-list-score player-list-column">' + data[key].score + '</div>';
 
         entry += '</li>';
         
@@ -109,8 +113,9 @@ socket.on('instruction', function(data) {
     $instruction.fadeIn();
 });
 
-socket.on('win', function(propId) {
-    $('.dataset tr[data-id="' + propId + '"]').addClass('highlight');
+socket.on('win', function(data) {
+    $('.dataset tr[data-id="' + data.propId + '"]').addClass('highlight');
+    $('#player-header-score').text(data.score);
     showPopup('win');    
 });
 
@@ -122,6 +127,7 @@ socket.on('lose', function(propId) {
 function showPopup(type) {
     
     var $popup = $('#popup');
+    var $popupOverlay = $('#popup-overlay');
     
     if (type === 'win') {
         $popup.text('You win!');
@@ -134,9 +140,11 @@ function showPopup(type) {
     };
     
     $popup.fadeIn('fast');
+    $popupOverlay.fadeIn('fast');
     
     setTimeout(function() {
         $popup.fadeOut('fast');
+        $popupOverlay.fadeOut('fast');
     } , 1000);
 };
    
